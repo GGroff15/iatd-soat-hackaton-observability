@@ -1,0 +1,94 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: otel-collector-internal
+    static_configs:
+      - targets: ["otel-collector:8888"]
+
+  - job_name: otel-collector
+    static_configs:
+      - targets: ["otel-collector:8889"]
+
+  - job_name: rabbitmq
+    static_configs:
+      - targets: ["rabbitmq:15692"]
+
+  - job_name: rabbitmq-per-object
+    metrics_path: /metrics/per-object
+    static_configs:
+      - targets: ["rabbitmq:15692"]
+
+  - job_name: blackbox-http
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    static_configs:
+      - targets: ["http://grafana:3000/api/health"]
+        labels:
+          service: grafana
+      - targets: ["http://prometheus:9090/-/ready"]
+        labels:
+          service: prometheus
+      - targets: ["http://loki:3100/metrics"]
+        labels:
+          service: loki
+      - targets: ["http://tempo:3200/metrics"]
+        labels:
+          service: tempo
+      - targets: ["http://otel-collector:8888/metrics"]
+        labels:
+          service: otel-collector
+      - targets: ["http://rabbitmq:15692/metrics"]
+        labels:
+          service: rabbitmq
+      - targets: ["http://minio:9000/minio/health/live"]
+        labels:
+          service: minio
+      - targets: ["http://mistral:1234/api/tags"]
+        labels:
+          service: mistral
+      - targets: ["http://bff_nginx/api/ping"]
+        labels:
+          service: soat-bff
+      - targets: ["http://upload_nginx/api/ping"]
+        labels:
+          service: soat-upload
+      - targets: ["http://report_nginx/api/ping"]
+        labels:
+          service: soat-report
+      - targets: ["http://trigger_nginx/api/ping"]
+        labels:
+          service: soat-trigger
+      - targets: ["http://diagram-analyzer-service:8000/openapi.json"]
+        labels:
+          service: diagram-analyzer-service
+      - targets: ["http://yolo-inference-api:8000/openapi.json"]
+        labels:
+          service: yolo-inference-api
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox-exporter:9115
+
+  - job_name: blackbox-tcp
+    metrics_path: /probe
+    params:
+      module: [tcp_connect]
+    static_configs:
+      - targets: ["upload_pg:5432"]
+        labels:
+          service: soat-upload-pg
+      - targets: ["trigger_pg:5432"]
+        labels:
+          service: soat-trigger-pg
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox-exporter:9115

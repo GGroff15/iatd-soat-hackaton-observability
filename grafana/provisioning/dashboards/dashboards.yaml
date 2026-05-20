@@ -1,0 +1,12 @@
+apiVersion: 1
+
+providers:
+  - name: soat-observability
+    orgId: 1
+    folder: SOAT
+    type: file
+    disableDeletion: false
+    allowUiUpdates: true
+    updateIntervalSeconds: 10
+    options:
+      path: /etc/grafana/provisioning/dashboards

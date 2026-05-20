@@ -1,0 +1,156 @@
+{
+  "uid": "architecture-diagram-analyzer",
+  "title": "Architecture Diagram Analyzer",
+  "tags": ["soat", "projects", "overview"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "10s",
+  "time": {
+    "from": "now-30m",
+    "to": "now"
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "service",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "query": {
+          "query": "label_values({service_namespace=\"soat\",service_name=~\".+\"}, service_name)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 2,
+        "includeAll": true,
+        "multi": true,
+        "allValue": ".+",
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        }
+      }
+    ]
+  },
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "Collector Up",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "up{job=\"otel-collector\"}",
+          "legendFormat": "otel-collector"
+        }
+      ],
+      "gridPos": {"x": 0, "y": 0, "w": 12, "h": 6}
+    },
+    {
+      "type": "timeseries",
+      "title": "RabbitMQ Up",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "up{job=\"rabbitmq\"}",
+          "legendFormat": "rabbitmq"
+        }
+      ],
+      "gridPos": {"x": 12, "y": 0, "w": 12, "h": 6}
+    },
+    {
+      "type": "timeseries",
+      "title": "Collector Spans Received (rate)",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(otelcol_receiver_accepted_spans[5m]))",
+          "legendFormat": "accepted spans"
+        }
+      ],
+      "gridPos": {"x": 0, "y": 6, "w": 24, "h": 7}
+    },
+    {
+      "type": "timeseries",
+      "title": "Collector Logs Received (rate)",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(otelcol_receiver_accepted_log_records[5m])) or sum(rate(otelcol_receiver_accepted_logs[5m]))",
+          "legendFormat": "accepted logs"
+        }
+      ],
+      "gridPos": {"x": 0, "y": 13, "w": 24, "h": 7}
+    },
+    {
+      "type": "timeseries",
+      "title": "HTTP Requests (rate) by Service",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(http_server_request_count_total[5m])) by (service_name) or sum(rate(http_server_request_count[5m])) by (service_name) or sum(rate(http_server_duration_milliseconds_count[5m])) by (service_name)",
+          "legendFormat": "{{service_name}}"
+        }
+      ],
+      "gridPos": {"x": 0, "y": 20, "w": 24, "h": 7}
+    },
+    {
+      "type": "logs",
+      "title": "Logs (Loki) by Service",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "{service_namespace=\"soat\", service_name=~\"$service\"}",
+          "queryType": "range"
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "showLabels": false,
+        "wrapLogMessage": true
+      },
+      "gridPos": {"x": 0, "y": 27, "w": 24, "h": 7}
+    },
+    {
+      "type": "table",
+      "title": "Traces (Tempo) by Service",
+      "datasource": {
+        "type": "tempo",
+        "uid": "tempo"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "traceql",
+          "query": "{ resource.service.namespace = \"soat\" && resource.service.name =~ \"$service\" }"
+        }
+      ],
+      "gridPos": {"x": 0, "y": 34, "w": 24, "h": 7}
+    }
+  ]
+}

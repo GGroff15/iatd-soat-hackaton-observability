@@ -1,0 +1,92 @@
+services:
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.103.0
+    container_name: soat-otel-collector
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml:ro
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+      - "8888:8888"
+      - "8889:8889"
+    restart: on-failure:3
+    depends_on:
+      - tempo
+      - loki
+
+  tempo:
+    image: grafana/tempo:2.5.0
+    container_name: soat-tempo
+    command: ["-config.file=/etc/tempo.yaml"]
+    user: "0:0"
+    volumes:
+      - ./tempo.yaml:/etc/tempo.yaml:ro
+      - tempo_data:/var/tempo
+    ports:
+      - "3200:3200"
+    restart: on-failure:3
+
+  loki:
+    image: grafana/loki:2.9.4
+    container_name: soat-loki
+    command: ["-config.file=/etc/loki.yaml"]
+    volumes:
+      - ./loki.yaml:/etc/loki.yaml:ro
+      - loki_data:/loki
+    ports:
+      - "3100:3100"
+    restart: on-failure:3
+
+  prometheus:
+    image: prom/prometheus:v2.53.1
+    container_name: soat-prometheus
+    volumes:
+      - ./prometheus.yaml:/etc/prometheus/prometheus.yaml:ro
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yaml"
+      - "--storage.tsdb.path=/prometheus"
+    ports:
+      - "9090:9090"
+    restart: on-failure:3
+    depends_on:
+      - blackbox-exporter
+
+  blackbox-exporter:
+    image: prom/blackbox-exporter:v0.25.0
+    container_name: soat-blackbox-exporter
+    command: ["--config.file=/etc/blackbox_exporter/config.yaml"]
+    volumes:
+      - ./blackbox.yaml:/etc/blackbox_exporter/config.yaml:ro
+    ports:
+      - "9115:9115"
+    restart: on-failure:3
+
+  grafana:
+    image: grafana/grafana:11.1.0
+    container_name: soat-grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana_data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    restart: on-failure:3
+    depends_on:
+      - prometheus
+      - loki
+      - tempo
+
+volumes:
+  grafana_data:
+  loki_data:
+  prometheus_data:
+  tempo_data:
+
+networks:
+  default:
+    external: true
+    name: soat-net
